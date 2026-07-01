@@ -1,34 +1,30 @@
 import { Box, Typography, Paper } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
 import { BiChevronLeftCircle } from "react-icons/bi";
-import { useNavigate } from "react-router-dom";
-
-const versions = [
-  {
-    version: 1,
-    title: "Doc-1",
-    content: "Initial content of document.",
-    createdAt: "2026-06-08T10:00:00",
-    updatedAt: "2026-06-08T10:00:00",
-  },
-  {
-    version: 2,
-    title: "Doc-1",
-    content: "Updated content with changes.",
-    createdAt: "2026-06-09T11:55:09",
-    updatedAt: "2026-06-09T11:55:09",
-  },
-  {
-    version: 3,
-    title: "Doc-1",
-    content: "Final revised content after review.",
-    createdAt: "2026-06-10T14:20:00",
-    updatedAt: "2026-06-10T14:20:00",
-  },
-];
+import { useLocation, useNavigate } from "react-router-dom";
+import { useLoader } from "../../context/loaderContext";
+import { getDocumentVersions } from "../../api/services/documentService";
 
 const VersionHistory = () => {
-
+    const {withLoader} = useLoader();
     const navigate = useNavigate();
+    const [versions, setVersions] = useState();
+    const location = useLocation();
+
+    const documentId = location.state?.documentId;
+
+    const getDocVersions = useCallback(async () => {
+        const response = await withLoader(async () => await getDocumentVersions(documentId, false));
+    
+        if (response.data.success) {
+          console.log("Document versions successfully");
+          setVersions(response.data.data);
+    }}, []);
+
+    useEffect(() => {
+    getDocVersions();
+    }, [getDocVersions]);
+
   return (
     <Box sx={{ p: 3 }}>
 
@@ -90,7 +86,7 @@ const VersionHistory = () => {
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
 
-        {versions
+        {(versions||[])
           .sort((a, b) => b.version - a.version)
           .map((v, index) => {
 
@@ -158,6 +154,7 @@ const VersionHistory = () => {
               </Paper>
             );
           })}
+        {(!versions || versions.length === 0 ) && (<span className="flex justify-center items-center italic">No version history yet.</span>)}
       </Box>
     </Box>
   );

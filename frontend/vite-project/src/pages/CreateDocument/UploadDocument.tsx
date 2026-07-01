@@ -1,14 +1,14 @@
 import { Box, Typography, Button, Paper, LinearProgress } from "@mui/material";
 import { useState } from "react";
-import * as pdfjsLib from "pdfjs-dist";
-import workerSrc from "pdfjs-dist/build/pdf.worker.min?url";
 import mammoth from "mammoth";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import { useNavigate } from "react-router-dom";
 import { useLoader } from "../../context/loaderContext";
 import { createDocument } from "../../api/services/documentService";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const UploadDocument = () => {
   const navigate = useNavigate();
@@ -74,7 +74,7 @@ const processFile = (selectedFile) => {
         extractedText += textItems.join(" ") + "\n";
       }
 
-      setContent(extractedText.trim());
+      setContent(extractedText);
       console.log("PDF Content:", extractedText);
     };
 

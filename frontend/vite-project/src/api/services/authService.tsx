@@ -12,3 +12,9 @@ export const loginUser = (data) =>
 // Reset Password
 export const resetPassword = (data) =>
   handleApi(() => axiosInstance.post("/auth/reset-password", data));
+
+export const sendOtp = (data) =>
+  handleApi(() => axiosInstance.post("/auth/send-otp", data));
+
+export const verifyOtp = (data) =>
+  handleApi(() => axiosInstance.post("/auth/verify-otp", data));

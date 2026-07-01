@@ -23,20 +23,17 @@ import {
   ArrowUpward,
   ArrowDownward,
 } from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import WarningPopUp from "../../components/WarningPopUp";
 import { FaRegCircleCheck } from "react-icons/fa6";
 import { RxCrossCircled } from "react-icons/rx";
 import { LuUserRoundPen } from "react-icons/lu";
 import { IoArchiveOutline } from "react-icons/io5";
-
-
-const ROLE = {
-  CREATOR: "creator",
-  REVIEWER: "reviewer",
-  ADMIN: "admin",
-};
+import dayjs from "dayjs";
+import { addComment, changeReviewers, deleteDocument, submitDocument, updateDocument } from "../../api/services/documentService";
+import { useLoader } from "../../context/loaderContext";
+import { getAllReviewers } from "../../api/services/userService";
 
 const CustomTable = ({
   data,
@@ -49,9 +46,12 @@ const CustomTable = ({
   page, 
   setPage,
   rowsPerPage, setRowsPerPage,
+  fetchDocuments,
 }) => {
 
   const navigate = useNavigate();
+  const {startLoading, stopLoading, withLoader} = useLoader();
+  const role = localStorage.getItem("role");
 
   const [openEdit, setOpenEdit] = useState(false);
   const [editData, setEditData] = useState({
@@ -62,13 +62,9 @@ const CustomTable = ({
 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [userRole] = useState(ROLE.CREATOR); 
+  const [userRole] = useState(role); 
   const [actionType, setActionType] = useState(""); // "delete" | "approve" | "reject" | changeReviewer
-  const [reviewersList] = useState([
-  { id: "rev1", name: "Reviewer 1" },
-  { id: "rev2", name: "Reviewer 2" },
-  { id: "rev3", name: "Reviewer 3" },
-]);
+  const [reviewersList, setReviewersList] = useState([]);
 
 const [selectedReviewer, setSelectedReviewer] = useState("");
 
@@ -86,18 +82,31 @@ const [selectedReviewer, setSelectedReviewer] = useState("");
 
   const handleEditClick = (row) => {
     setEditData({
-      id: row.id,
+      id: row._id,
       title: row.title,
       content: row.content || "",
     });
     setOpenEdit(true);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     console.log("Updated Data:", editData);
-
-    setOpenEdit(false);
+    startLoading();
+    const res =  await updateDocument(editData, false);
+    if(res.success) {
+      await fetchDocuments();
+      setOpenEdit(false);
+    }
+    stopLoading();
   };
+
+  const deletesDocument = useCallback(async (id) => {
+    const response = await withLoader(async () => await deleteDocument(id, false));
+
+    if (response.data.success) {
+      await withLoader(async () => await fetchDocuments());
+      console.log("Document deleted successfully");
+  }}, []);
 
   const handleSort = (field, e) => {
     e.stopPropagation();
@@ -160,7 +169,9 @@ const getStatusChip = (status) => {
     },
   };
 
+
   const current = statusColors[status] || statusColors["Draft"];
+
 
   return (
     <Chip
@@ -198,35 +209,38 @@ const getStatusChip = (status) => {
     setOpenDialog(true);
   };
 
- const handleConfirmAction = (payload) => {
-  if (actionType === "delete") {
-    console.log("Deleting:", selectedRow);
+  const getAllReviewer = useCallback(async () => {
+    const response = await withLoader(async () => await getAllReviewers(false));
 
-  } else if (actionType === "approve") {
-    console.log("Approving:", selectedRow);
-    console.log("Comment:", payload);
+    if (response.data.success) {
+      console.log("All reviewers fetched successfully");
+      setReviewersList(response.data.data);
+  }}, []);
 
-  } else if (actionType === "reject") {
-    console.log("Rejecting:", selectedRow);
-    console.log("Comment:", payload);
+    const changeReviewer = useCallback(async (data) => {
+    const response = await withLoader(async () => await changeReviewers(data, false));
 
-  } else if (actionType === "changeReviewer") {
-    const selected = reviewersList.find(
-      (r) => r.id === payload
-    );
+    if (response.data.success) {
+      console.log("Reviewer changed successfully");
+      if(status === "AllDocuments") navigate("/dashboard"); else navigate("/my-drafts");
+  }}, []);
 
-    console.log("Changing reviewer:", selectedRow);
-    console.log("New Reviewer:", selected);
+   const handleSubmit = useCallback(async (status, id) => {
+    const res = await withLoader(async () => await submitDocument({id, status}, false));
 
-  }
-  else if (actionType === "archive") {
-    console.log("Archived:", selectedRow);
+    if(res.data.success){
+      console.log("Document reviewed / archived successfully");
+    }
+  
+  },[]);
+  
 
-  }
+  useEffect(()=>{ getAllReviewer()},[getAllReviewer]);
 
-  setOpenDialog(false);
-};
-
+  const formatDate = (date, format = "DD MMM YYYY, hh:mm A") => {
+    if (!date) return "-";
+    return dayjs(date).format(format);
+  };
   return (
     <>
       
@@ -255,17 +269,17 @@ const getStatusChip = (status) => {
               <TableCell sx={{ color: "#fff", fontWeight: 500 }}>
                 Draft No.
               </TableCell>
-              {(!status || status === "Reviewed" || status === "Review" || status === "Delegated" || status === "AllDocuments")  && (
+              {(!status || status === "Reviewed" || status === "Review" || status === "AllDocuments")  && (
                 <TableCell sx={{ color: "#fff", fontWeight: 500 }}>
                     Status
                 </TableCell>
                 )}
 
-              {userRole !== ROLE.CREATOR && (<TableCell sx={{ color: "#fff", fontWeight: 500 }}>
+              {userRole !== "user" && (<TableCell sx={{ color: "#fff", fontWeight: 500 }}>
                 Owner
               </TableCell>)}
               
-              {userRole !== ROLE.REVIEWER && (<TableCell sx={{ color: "#fff", fontWeight: 500 }}>
+              {userRole !== "reviewer" && (<TableCell sx={{ color: "#fff", fontWeight: 500 }}>
                 Reviewer
               </TableCell>)}
 
@@ -294,7 +308,7 @@ const getStatusChip = (status) => {
                 </IconButton>
               </TableCell>)}
 
-              {(!status || (status !== "Submitted" && status !== "Review" && status !== "Delegated")) && (
+              {(!status || (status !== "Submitted" && status !== "Review")) && (
                 <TableCell sx={{ color: "#fff", fontWeight: 500 }}>
                     Actions
                 </TableCell>
@@ -324,15 +338,15 @@ const getStatusChip = (status) => {
               >
                 <TableCell>{displayValue(row.title)}</TableCell>
                 <TableCell>{displayValue(row.draftNo)}</TableCell>
-                {(!status || status === "Reviewed" || status === "Review" || status === "Delegated" || status === "AllDocuments") && (
+                {(!status || status === "Reviewed" || status === "Review" ||  status === "AllDocuments") && (
                     <TableCell>{getStatusChip(row.status)}</TableCell>
                     )}
-                {userRole !== ROLE.CREATOR && (<TableCell>{row.owner}</TableCell>)}
-                {userRole !== ROLE.REVIEWER && (<TableCell>{displayValue(row.reviewer)}</TableCell>)}
-                {(!status || status !== "Reviewed") && (<TableCell>{row.createdAt}</TableCell>)}
-                {status !== "AllDocuments" && (<TableCell>{row.updatedAt}</TableCell>)}
+                {userRole !== "user" && (<TableCell>{row.owner}</TableCell>)}
+                {userRole !== "reviewer" && (<TableCell>{displayValue(row.reviewer)}</TableCell>)}
+                {(!status || status !== "Reviewed") && (<TableCell>{formatDate(row.createdAt)}</TableCell>)}
+                {status !== "AllDocuments" && (<TableCell>{formatDate(row.updatedAt)}</TableCell>)}
 
-                {(!status || (status !== "Submitted" && status !== "Review" && status !== "Delegated")) && (
+                {(!status || (status !== "Submitted" && status !== "Review")) && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
   
                   {(status === "Assigned" && row.status === "submitted") ? (<>
@@ -716,12 +730,17 @@ const getStatusChip = (status) => {
      <WarningPopUp
         open={openDialog}
         onClose={() => setOpenDialog(false)}
-        onConfirm={(comment) => handleConfirmAction(comment)}
+        onConfirm={(comment) => {
+            console.log("comment is set as :: ", comment);
+            setOpenDialog(false);
+        }}
         action={actionType}                 // "delete" | "approve" | "reject" | "changeReviewer"
         selectedTitle={selectedRow?.title}
         reviewersList={reviewersList}
         selectedReviewer={selectedReviewer}
         setSelectedReviewer={setSelectedReviewer}
+        rowData={selectedRow}
+        apiAction={actionType === "changeReviewer" ? changeReviewer : actionType === "delete" ? deletesDocument : handleSubmit}
         />
 
     </>

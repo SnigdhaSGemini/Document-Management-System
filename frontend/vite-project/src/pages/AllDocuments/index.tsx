@@ -6,90 +6,13 @@ import {
   Typography,
   Button
 } from "@mui/material";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomTable from "../../components/CustomTable";
-
-
-const dummyData = [
-  {
-    title: "Policy Document",
-    content: "Policy content 1",
-    draftNo: "DR001",
-    status: "Rejected",
-    owner: "Bonn Saida",
-    reviewer: "Admin",
-    ownerId: "1",
-    reviewerId: "10",
-    currentVersion: 1,
-    createdAt: "2026-06-19",
-    updatedAt: "2026-06-20",
-  },
-  {
-    title: "HR Guidelines",
-    content: "HR guidelines content",
-    draftNo: "DR002",
-    status: "Approved",
-    owner: "Bonn Saida",
-    reviewer: "Manager",
-    ownerId: "1",
-    reviewerId: "11",
-    currentVersion: 2,
-    createdAt: "2026-06-18",
-    updatedAt: "2026-06-21",
-  },
-  {
-    title: "Finance Policy",
-    content: "Finance policy details",
-    draftNo: "DR003",
-    status: "Draft",
-    owner: "Bonn Saida",
-    reviewer: null,
-    ownerId: "1",
-    reviewerId: null,
-    currentVersion: 3,
-    createdAt: "2026-06-17",
-    updatedAt: "2026-06-20",
-  },
-  {
-    title: "IT Security",
-    content: "Security document content",
-    draftNo: "DR004",
-    status: "Submitted",
-    owner: "Bonn Saida",
-    reviewer: "Manager",
-    ownerId: "1",
-    reviewerId: "11",
-    currentVersion: 2,
-    createdAt: "2026-06-16",
-    updatedAt: "2026-06-21",
-  },
-  {
-    title: "Compliance Guide",
-    content: "Compliance content",
-    draftNo: "DR005",
-    status: "Draft",
-    owner: "Bonn Saida",
-    reviewer: null,
-    ownerId: "1",
-    reviewerId: null,
-    currentVersion: 1,
-    createdAt: "2026-06-15",
-    updatedAt: "2026-06-20",
-  },
-  {
-    title: "Operations Manual",
-    content: "Operations details",
-    draftNo: "DR006",
-    status: "Submitted",
-    owner: "Bonn Saida",
-    reviewer: "Admin",
-    ownerId: "1",
-    reviewerId: "10",
-    currentVersion: 4,
-    createdAt: "2026-06-14",
-    updatedAt: "2026-06-21",
-  },
-];
+import { useLoader } from "../../context/loaderContext";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../redux";
+import { getAllDocuments, getAllOwners } from "../../api/services/documentService";
+import { getAllReviewers } from "../../api/services/userService";
 
 const AllDocuments = () => {
   const [search, setSearch] = useState("");
@@ -97,26 +20,90 @@ const AllDocuments = () => {
   const [reviewerFilter, setReviewerFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
 
+   const {withLoader} = useLoader();
+  const [allDocs, setAllDocs] = useState();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage]= useState(5);
+  const [totalCount, setTotalCount] = useState(0);
+  const [reviewers, setReviewers] = useState([]);
+  const [owners, setOwners] = useState([]);
+
   const [sortField, setSortField] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  let filteredData = dummyData.filter((item) => {
-    return (
-      (item.title.toLowerCase().includes(search.toLowerCase()) ||
-        item.draftNo.toLowerCase().includes(search.toLowerCase())) &&
-      (statusFilter ? item.status === statusFilter : true) &&
-      (reviewerFilter ? item.reviewer === reviewerFilter : true) &&
-      (ownerFilter ? item.owner === ownerFilter : true)
-    );
-  });
+  const { startDate, endDate } = useSelector(
+    (state: RootState) => state.dateRange
+  );
 
-  if (sortField) {
-    filteredData = [...filteredData].sort((a, b) => {
-      const dateA = new Date(a[sortField]);
-      const dateB = new Date(b[sortField]);
-      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-    });
+  
+const payload = useMemo(() => {
+  const p: any = {
+    page: page + 1,
+    limit: rowsPerPage
+  };
+
+  if (startDate) p.startDate = startDate;
+  if (endDate) p.endDate = endDate;
+  if (search) p.search = search;
+  if (statusFilter) p.status = statusFilter;
+  if (reviewerFilter) p.reviewer = reviewerFilter;
+  if (ownerFilter) p.owner = ownerFilter;
+
+  if (sortField && sortOrder) {
+    p.sortField = sortField;
+    p.sortOrder = sortOrder;
   }
+
+  return p;
+}, [
+  startDate,
+  endDate,
+  search,
+  statusFilter,
+  reviewerFilter,
+  ownerFilter,
+  sortField,
+  sortOrder,
+  page,
+  rowsPerPage
+]);
+
+const fetchDocuments = useCallback(async () => {
+    const response = await withLoader(() => getAllDocuments(payload, false))
+
+    if (response.success) {
+      setAllDocs(response.data.data);
+      setTotalCount(response.data.count);
+    } else {
+      setTotalCount(0);
+    }
+}, [payload]);
+
+const fetchReviewers = useCallback(async () => {
+    const response = await withLoader(() => getAllReviewers(false))
+
+    if (response.success) {
+      setReviewers(response.data.data);
+    } else {
+      setReviewers([]);
+    }
+}, []);
+
+const fetchOwners = useCallback(async () => {
+    const response = await withLoader(() => getAllOwners(false))
+
+    if (response.success) {
+      setOwners(response.data.data);
+    } else {
+      setOwners([]);
+    }
+}, []);
+
+useEffect(() => {
+  fetchDocuments();
+  fetchReviewers();
+  fetchOwners();
+}, [fetchDocuments, fetchReviewers, fetchOwners]);
 
 
   const commonFieldSx = {
@@ -183,8 +170,11 @@ const AllDocuments = () => {
           sx={{ minWidth: 150, ...commonFieldSx }}
         >
           <MenuItem value="">All</MenuItem>
-          <MenuItem value="Draft">Draft</MenuItem>
-          <MenuItem value="Submitted">Submitted</MenuItem>
+          <MenuItem value="draft">Draft</MenuItem>
+          <MenuItem value="submitted">Submitted</MenuItem>
+          <MenuItem value="approved">Approved</MenuItem>
+          <MenuItem value="rejected">Rejected</MenuItem>
+          <MenuItem value="archived">Archived</MenuItem>
         </TextField>
 
         <TextField
@@ -195,8 +185,11 @@ const AllDocuments = () => {
           sx={{ minWidth: 150, ...commonFieldSx }}
         >
           <MenuItem value="">All</MenuItem>
-          <MenuItem value="Bonn Saida">Bonn Saida</MenuItem>
-          <MenuItem value="Sammy Dell">Sammy Dell</MenuItem>
+           {owners?.map((owner) => (
+              <MenuItem key={owner} value={owner}>
+                {owner}
+              </MenuItem>
+            ))}
         </TextField>
 
         <TextField
@@ -207,8 +200,11 @@ const AllDocuments = () => {
           sx={{ minWidth: 150, ...commonFieldSx }}
         >
           <MenuItem value="">All</MenuItem>
-          <MenuItem value="Admin">Admin</MenuItem>
-          <MenuItem value="Manager">Manager</MenuItem>
+            {reviewers?.map((reviewer) => (
+              <MenuItem key={reviewer._id} value={reviewer.name}>
+                {reviewer.name}
+              </MenuItem>
+            ))}
         </TextField>
 
         {/*  Reset  */}
@@ -220,6 +216,7 @@ const AllDocuments = () => {
             setOwnerFilter("");
             setSortField("");
             setSortOrder("asc");
+            setPage(0);
           }}
           sx={{
             borderRadius: "10px",
@@ -241,12 +238,18 @@ const AllDocuments = () => {
 
       {/* Table */}
       <CustomTable
-        data={filteredData}
+        status="AllDocuments"
+        data={allDocs}
+        totalCount={totalCount} 
         sortField={sortField}
         sortOrder={sortOrder}
         setSortField={setSortField}
         setSortOrder={setSortOrder}
-        status="AllDocuments"
+        page={page}
+        setPage={setPage}
+        rowsPerPage={rowsPerPage}
+        setRowsPerPage={setRowsPerPage}
+        fetchDocuments={fetchDocuments}
       />
     </Paper>
   );

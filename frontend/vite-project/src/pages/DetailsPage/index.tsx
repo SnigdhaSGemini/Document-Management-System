@@ -11,33 +11,20 @@ import {
   DialogActions
 } from "@mui/material";
 import { History, ReceiptLong } from "@mui/icons-material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BiChevronLeftCircle } from "react-icons/bi";
 import WarningPopUp from "../../components/WarningPopUp";
-
-const ROLE = {
-  CREATOR: "creator",
-  REVIEWER: "reviewer",
-  ADMIN: "admin",
-};
-
-const STATUS = {
-  DRAFT: "draft",
-  IN_REVIEW: "in_review",
-  APPROVED: "approved",
-  REJECTED: "rejected",
-  ARCHIVED: "archived",
-};
+import dayjs from "dayjs";
+import { getAllReviewers } from "../../api/services/userService";
+import { useLoader } from "../../context/loaderContext";
+import { addComment, changeReviewers, getAllComments, getTimeline, submitDocument } from "../../api/services/documentService";
 
 const DetailsPage = () => {
   
  const navigate = useNavigate();
   const location = useLocation();
-
-  // Role + Status 
-const [userRole] = useState(ROLE.ADMIN); 
-const [documentStatus, setDocumentStatus] = useState(STATUS.IN_REVIEW);
+  const role = localStorage.getItem("role");
 
 // Reviewer modal state
 const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
@@ -46,20 +33,32 @@ const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
 const [selectedReviewer, setSelectedReviewer] = useState("");
 
 // Current reviewer
-const [currentReviewer, setCurrentReviewer] = useState({
-  id: "rev1",
-  name: "Reviewer 1",
-});
+const [currentReviewer, setCurrentReviewer] = useState();
 
 const [actionType, setActionType] = useState("");
 const [dialogOpen, setDialogOpen] = useState(false);
+const {withLoader, startLoading, stopLoading} = useLoader();
+const [reviewersList, setReviewersList] = useState([]);
+const userId = localStorage.getItem("userId");
+const user = localStorage.getItem("name");
 
-// Reviewers list
-const [reviewersList] = useState([
-  { id: "rev1", name: "Reviewer 1" },
-  { id: "rev2", name: "Reviewer 2" },
-  { id: "rev3", name: "Reviewer 3" },
-]);
+  const getAllReviewer = useCallback(async () => {
+    const response = await withLoader(async () => await getAllReviewers(false));
+
+    if (response.data.success) {
+      console.log("All reviewers fetched successfully");
+      setReviewersList(response.data.data);
+  }}, []);
+
+    const changeReviewer = useCallback(async (data) => {
+    const response = await withLoader(async () => await changeReviewers(data, false));
+
+    if (response.data.success) {
+      console.log("Reviewer changed successfully");
+      navigate("/my-drafts");
+  }}, []);
+
+  useEffect(()=>{ getAllReviewer()},[getAllReviewer]);
 
  useEffect(() => {
   if (!currentReviewer?.id) return;
@@ -105,25 +104,14 @@ const btnGray = {
 
 
   const draft = location.state?.draft;
-
-const timeline = [
-  {
-    type: "Draft",
-    user: "You",
-    date: "25 Jun 2026, 4:01PM",
-  },
-  {
-    type: "Submitted",
-    user: "You",
-    date: "25 Jun 2026, 4:02 PM",
-  },
-
-];
+  const [userRole] = useState(role); 
+const [documentStatus, setDocumentStatus] = useState(draft.status);
+const [timeline, setTimeline] = useState([]);
 
 const formatLabel = (key) => {
   const withSpaces = key.replace(/([A-Z])/g, " $1").trim();
-  if((documentStatus === STATUS.APPROVED || 
-    documentStatus === STATUS.REJECTED || documentStatus === STATUS.ARCHIVED) && key === "updatedAt") return "Reviewed On";
+  if((documentStatus === "approved" || 
+    documentStatus === "rejected" || documentStatus === "archived") && key === "updatedAt") return "Reviewed On";
 
   return withSpaces
     .split(" ")
@@ -135,36 +123,46 @@ const formatLabel = (key) => {
     .join(" ");
 };
 
+  const getTimelines = useCallback(async () => {
+    const response = await withLoader(async () => await getTimeline(draft._id, false));
+
+    if (response.data.success) {
+      console.log("Timeline fetched successfully");
+      setTimeline(response.data.data);
+  }}, []);
 const [comment, setComment] = useState("");
 
-const [comments, setComments] = useState([
-  {
-    id: 1,
-    user: "You",
-    text: "Initial draft created.",
-    time: "19 Jun 2026, 10:00 AM",
-  },
-  {
-    id: 2,
-    user: "Admin",
-    text: "Please update section 2.",
-    time: "20 Jun 2026, 02:30 PM",
-  },
-]);
+const [comments, setComments] = useState([]);
 
-const handleAddComment = () => {
+const handleAddComment = async() => {
+  startLoading();
   if (!comment.trim()) return;
 
-  const newComment = {
-    id: Date.now(),
-    user: "You",
-    text: comment,
-    time: new Date().toLocaleString(),
-  };
+  const data = { id: draft._id, body: comment, userId, user};
 
-  setComments([...comments, newComment]);
+ const res =  await addComment(data,false);
+ console.log("comments:: ",comments, data);
+
+ if(res.data.success){
+  getComments();
   setComment("");
+ }
+ stopLoading();
 };
+
+const getComments = useCallback(async() => {
+
+  startLoading();
+  const res =  await getAllComments(draft._id, false);
+  console.log("all comment data:: ",res);
+
+  if(res.data.success){
+    console.log("All comments fetched successfully");
+    setComments(res.data.data);
+  }
+  stopLoading();
+},[])
+
 
 const updateDocumentStatus = async (newStatus) => {
   try {
@@ -176,38 +174,25 @@ const updateDocumentStatus = async (newStatus) => {
   }
 };
 
-const handleSubmitForReview = () => {
-  const documentData = {
-    title: draft.title,
-    draftNo: draft.draftNo,
-    status: "Submitted",
-    reviewer: draft.reviewer,
-    createdAt: draft.createdAt,
-    updatedAt: draft.updatedAt,
-
-    submittedAt: new Date().toISOString(),
-  };
-
-  console.log("📄 Document Submitted:");
-  console.log(JSON.stringify(documentData, null, 2));
-  updateDocumentStatus(STATUS.IN_REVIEW);
-  navigate("/pending-reviews")
+const handleSubmitForReview = async (status, id) => {
+  startLoading();
+  const res =  await submitDocument({id: draft._id, status}, false) ;
+  if(res.success){
+  updateDocumentStatus(status);
+ setTimeout(() => { if(status === "submitted") navigate("/pending-reviews"); else if(status === "archived") navigate("/all-documents"); else navigate('/reviewed-documents');},10)
+  }
+  stopLoading();
 
 };
 
 const handleApprove = () => {
-  updateDocumentStatus(STATUS.APPROVED);
-  navigate('/reviewed-documents')
+  setDialogOpen(true);
+  setActionType("approve");
 };
 
 const handleReject = () => {
-  updateDocumentStatus(STATUS.REJECTED);
-  navigate('/reviewed-documents')
-};
-
-const handleArchive = () => {
-  updateDocumentStatus(STATUS.ARCHIVED);
-  //document reload
+  setDialogOpen(true);
+  setActionType("reject");
 };
 
 const handleChangeReviewer = () => {
@@ -215,10 +200,13 @@ const handleChangeReviewer = () => {
   setDialogOpen(true);
 };
 
+useEffect(() =>{getComments()},[getComments]);
+useEffect(() =>{getTimelines()},[getTimelines]);
+
 const handleSaveReviewer = async () => {
   try {
     const selected = reviewersList.find(
-      (r) => r.id === selectedReviewer
+      (r) => r.name === selectedReviewer
     );
 
     setCurrentReviewer(selected);
@@ -230,6 +218,11 @@ const handleSaveReviewer = async () => {
     console.error(e);
   }
 };
+
+  const formatDate = (date, format = "DD MMM YYYY, hh:mm A") => {
+    if (!date) return "-";
+    return dayjs(date).format(format);
+  };
 
 
   if (!draft) return <Typography>No draft data</Typography>;
@@ -298,8 +291,8 @@ const handleSaveReviewer = async () => {
 
         <Box sx={{ display: "flex", gap: 2 }}>
           
-          {[{ icon: <History onClick={()=> navigate("/history")}/>, label: "View History" },
-            { icon: <ReceiptLong onClick={()=> navigate("/audit-logs")}/>, label: "Audit Logs" }].map((item, i) => (
+          {[{ icon: <History onClick={()=> navigate("/history", { state: { documentId: draft._id } })}/>, label: "View History" },
+            { icon: <ReceiptLong onClick={()=> navigate("/audit-logs",  { state: { documentId: draft._id } })}/>, label: "Audit Logs" }].map((item, i) => (
             <Box
               key={i}
               sx={{
@@ -361,7 +354,7 @@ const handleSaveReviewer = async () => {
           >
            
       {Object.entries(draft)
-            .filter(([_, value]) => value !== null && _ !== "title" && _ !== "content") 
+            .filter(([_, value]) => value !== null && _ !== "title" && _ !== "content" && _!== "_id" && _ !== "__v") 
             .map(([key, value], i) => (
               <Box key={i}>
                 
@@ -383,7 +376,7 @@ const handleSaveReviewer = async () => {
                     fontSize: 13,
                   }}
                 >
-                  {value}
+                 {(key === "createdAt" || key === "updatedAt") ? formatDate(value as string) :  String(value)}
                 </Typography>
 
               </Box>
@@ -421,15 +414,14 @@ const handleSaveReviewer = async () => {
             {timeline.map((item, index) => {
               const currentColor =
                 {
-                  Draft: "#6b7280",
-                  Submitted: "#3b82f6",
-                  Assigned: "#2563eb",
-                  "Re-assigned": "#8b5cf6",
-                  "Delegated to Admin": "#14b8a6",
-                  Approved: "#16a34a",
-                  Rejected: "#ef4444",
-                  Archived: "#9ca3af",
-                }[item.type] || "#6b7280";
+                  draft: "#6b7280",
+                  submitted: "#3b82f6",
+                  assigned: "#2563eb",
+                  reassigned: "#8b5cf6",
+                  approved: "#16a34a",
+                  rejected: "#ef4444",
+                  archived: "#9ca3af",
+                }[item.status] || "#6b7280";
 
               return (
                 <Box
@@ -523,7 +515,8 @@ const handleSaveReviewer = async () => {
                         height: "auto"
                       }}
                     >
-                      {item.type}
+                      {item.status === "reassigned" ? "Re-assigned": item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                      {item.reviewer && (<><br/> {item.reviewer}</>)}
                     </Typography>
                     <Typography
                       sx={{
@@ -549,7 +542,7 @@ const handleSaveReviewer = async () => {
                         height: "auto"
                       }}
                     >
-                      {item.date}
+                      {formatDate(item.createdAt)}
                     </Typography>
                   </Box>
                 </Box>
@@ -560,16 +553,16 @@ const handleSaveReviewer = async () => {
         <Box sx={{ mb: 4, display: "flex", gap: 2 }}>
 
   {/* CREATOR */}
-  {userRole === ROLE.CREATOR &&
-    documentStatus === STATUS.DRAFT && (
-      <Button variant="outlined" sx={btnPrimary} onClick={handleSubmitForReview}>
+  {userRole === "user" &&
+    documentStatus === "draft" && (
+      <Button variant="outlined" sx={btnPrimary} onClick={() => handleSubmitForReview("submitted")}>
         Submit for Review
       </Button>
     )}
 
   {/* REVIEWER  */}
-  {userRole === ROLE.REVIEWER &&
-    documentStatus === STATUS.IN_REVIEW && (
+  {userRole === "reviewer" &&
+    documentStatus === "submitted" && (
       <>
         <Button
           variant="contained"
@@ -592,8 +585,8 @@ const handleSaveReviewer = async () => {
     )}
 
   {/* ADMIN */}
-  {userRole === ROLE.ADMIN && 
-    documentStatus === STATUS.IN_REVIEW && (
+  {userRole === "admin" && 
+    documentStatus === "submitted" && (
       <Button
         variant="outlined"
         sx={btnPurple}
@@ -603,12 +596,12 @@ const handleSaveReviewer = async () => {
       </Button>
     )}
 
-  {userRole === ROLE.ADMIN &&
-    documentStatus === STATUS.APPROVED && (
+  {userRole === "admin" &&
+    documentStatus === "approved" && (
       <Button
         variant="outlined"
         sx={btnGray}
-        onClick={handleArchive}
+       onClick={() => handleSubmitForReview("archived")}
       >
         Archive
       </Button>
@@ -660,7 +653,7 @@ const handleSaveReviewer = async () => {
   <Box sx={{ mt: 3 }}>
     {comments.map((c) => (
       <Box
-        key={c.id}
+        key={c._id}
         sx={{
           display: "flex",
           gap: 2,
@@ -672,7 +665,7 @@ const handleSaveReviewer = async () => {
       >
 
         <Avatar sx={{ width: 32, height: 32 }}>
-          {c.user[0]}
+          {c.user?.trim()?.charAt(0).toUpperCase()}
         </Avatar>
 
         <Box>
@@ -694,7 +687,7 @@ const handleSaveReviewer = async () => {
               mb: 0.5,
             }}
           >
-            {c.time}
+            {formatDate(c.createdAt)}
           </Typography>
 
           <Typography
@@ -703,7 +696,7 @@ const handleSaveReviewer = async () => {
               color: "#4b5563",
             }}
           >
-            {c.text}
+            {c.body}
           </Typography>
         </Box>
       </Box>
@@ -720,14 +713,20 @@ const handleSaveReviewer = async () => {
       reviewersList={reviewersList}
       selectedReviewer={selectedReviewer}
       setSelectedReviewer={setSelectedReviewer}
-      onConfirm={(value) => {
-        const selected = reviewersList.find((r) => r.id === value);
-        setCurrentReviewer(selected);
-
-        console.log("Reviewer changed to:", selected);
+      onConfirm={async (value) => {
+        if(actionType === "changeReviewer"){
+          const selected = reviewersList.find((r) => r.name === value);
+          setCurrentReviewer(selected);
+          console.log("Reviewer changed to:", selected);
+          }
+        if(actionType === "approve" || actionType === "reject"){
+          console.log("review remarks : ", value);
+        }
 
         setDialogOpen(false);
       }}
+      apiAction={actionType === "changeReviewer" ? changeReviewer : handleSubmitForReview}
+      rowData={draft}
     />
 
     </Box>

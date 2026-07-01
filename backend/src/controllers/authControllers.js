@@ -60,3 +60,45 @@ export const  forgotPassword = async (req , res) => {
         res.status(500).json({success: false, message: err.message || "Something went wrong."});
     }
 };
+
+export const  sendOTP = async (req , res) => {
+    try{  
+        const {email} = req.body;
+         const authService = new AuthService();
+         const response = await authService.sendOtp(email);
+
+         const {success, ...data} = response;
+
+        if(success){
+         console.log(`Sent otp for user.`);
+         res.status(201).json({success: true, message: `Sent otp for user.`, ...data});
+        }
+        else{
+             res.status(400).json(response);
+        }
+    }
+    catch(err) {
+        res.status(500).json({success: false, message: err.message || "Something went wrong."});
+    }
+};
+
+export const  verifyOTP = async (req , res) => {
+    try{  
+        const {email, otp} = req.body
+         const authService = new AuthService();
+         const response = await authService.verifyOtp(email, otp);
+
+         const {success, ...data} = response;
+
+        if(success){
+         console.log(`Verify otp for user.`);
+         res.status(201).json({success: true, message: `Verify otp for user.`, ...data});
+        }
+        else{
+             res.status(400).json(response);
+        }
+    }
+    catch(err) {
+        res.status(500).json({success: false, message: err.message || "Something went wrong."});
+    }
+};

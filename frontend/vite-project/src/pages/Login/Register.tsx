@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../../api/services/authService";
 import {useLoader} from "../../context/loaderContext";
+import { encryptPassword } from "../../utils/encryptPassword";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -23,9 +24,15 @@ const Register = () => {
   const passwordValue = watch("password");
 
  const onSubmit = async (data) => {
-  const { fullName, ...urlData } = data;
+  const { fullName, password, confirmPassword, ...urlData } = data;
+  const publicKey = import.meta.env.VITE_PUBLIC_KEY.replace(/\\n/g, "\n");
+  const encryptedPassword = encryptPassword(password, publicKey);
+  const encryptConfirmPassword = encryptPassword(confirmPassword, publicKey);
+
   const response = await withLoader(() => registerUser({
     name: fullName,
+    password: encryptedPassword,
+    confirmPassword: encryptConfirmPassword,
     ...urlData
   }));
 

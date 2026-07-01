@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TextField, Button, IconButton, InputAdornment} from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { resetPassword } from "../../api/services/authService";
 import { useLoader } from "../../context/loaderContext";
+import { encryptPassword } from "../../utils/encryptPassword";
+import { useLocation } from "react-router-dom";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { withLoader } = useLoader();
+  const location = useLocation();
+  const email = location.state?.email;
 
   const {
     register,
@@ -22,9 +26,19 @@ const ResetPassword = () => {
 
   const newPasswordValue = watch("newPassword");
 
+  useEffect(() => {
+  if (!email) {
+    navigate("/verify-otp");
+  }
+}, [email]);
+
   const onSubmit = async (data) => {
-    const {newPassword, ...apiData} = data;
-    const response = await withLoader(() => resetPassword({password: newPassword, ...apiData}));
+    const {newPassword, confirmPassword, ...apiData} = data;
+    const publicKey = import.meta.env.VITE_PUBLIC_KEY.replace(/\\n/g, "\n");
+    const encryptedPassword = encryptPassword(newPassword, publicKey);
+    const encryptConfirmPassword = encryptPassword(confirmPassword, publicKey);
+
+    const response = await withLoader(() => resetPassword({ email, password: encryptedPassword, confirmPassword: encryptConfirmPassword}));
 
       if (response.success) {
         reset();

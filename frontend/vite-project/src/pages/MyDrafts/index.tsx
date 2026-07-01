@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../../redux";
 import { useLoader } from "../../context/loaderContext";
 import { getAllDocuments } from "../../api/services/documentService";
+import { getAllReviewers } from "../../api/services/userService";
 
 const MyDrafts = () => {//8
   const [search, setSearch] = useState("");
@@ -22,6 +23,7 @@ const MyDrafts = () => {//8
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage]= useState(5);
   const [totalCount, setTotalCount] = useState(0);
+  const [reviewers, setReviewers] = useState([]);
 
 
   const [sortField, setSortField] = useState("");
@@ -72,9 +74,20 @@ const fetchDocuments = useCallback(async () => {
     }
 }, [payload]);
 
+const fetchReviewers = useCallback(async () => {
+    const response = await withLoader(() => getAllReviewers(false))
+
+    if (response.success) {
+      setReviewers(response.data.data);
+    } else {
+      setReviewers([]);
+    }
+}, []);
+
 useEffect(() => {
   fetchDocuments();
-}, [fetchDocuments]);
+  fetchReviewers();
+}, [fetchDocuments, fetchReviewers]);
 
 
   const commonFieldSx = {
@@ -137,6 +150,9 @@ useEffect(() => {
           <MenuItem value="">All</MenuItem>
           <MenuItem value="draft">Draft</MenuItem>
           <MenuItem value="submitted">Submitted</MenuItem>
+          <MenuItem value="approved">Approved</MenuItem>
+          <MenuItem value="rejected">Rejected</MenuItem>
+          <MenuItem value="archived">Archived</MenuItem>
         </TextField>
 
         <TextField
@@ -147,8 +163,11 @@ useEffect(() => {
           sx={{ minWidth: 150, ...commonFieldSx }}
         >
           <MenuItem value="">All</MenuItem>
-          <MenuItem value="Admin">Admin</MenuItem>
-          <MenuItem value="Manager">Manager</MenuItem>
+          {reviewers?.map((reviewer) => (
+              <MenuItem key={reviewer._id} value={reviewer.name}>
+                {reviewer.name}
+              </MenuItem>
+            ))}
         </TextField>
 
         {/* Reset Button */}
@@ -191,6 +210,7 @@ useEffect(() => {
         setPage={setPage}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
+        fetchDocuments={fetchDocuments}
       />
     </Paper>
   );

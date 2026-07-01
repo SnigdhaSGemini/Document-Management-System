@@ -46,3 +46,36 @@ export const forgotPasswordValidations = (req, res, next) => {
     });
   next();
 };
+
+export const sendOtpValidation = (req, res, next) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+  });
+
+  const { error } = schema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      error: error.details[0].message,
+    });
+  }
+
+  next();
+};
+
+export const verifyOtpValidation = (req, res, next) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+    otp: Joi.string().length(6).required(),
+  });
+
+  const { error } = schema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      error: error.details[0].message,
+    });
+  }
+
+  next();
+};

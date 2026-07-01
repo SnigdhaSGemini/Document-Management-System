@@ -2,84 +2,61 @@ import { BiSolidCalendarAlt } from "react-icons/bi";
 import { MdNotifications } from "react-icons/md";
 import { TbLogout } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DateRangeFilter from "../DateRangeFilter"; 
 import { useDispatch } from "react-redux";
 import { setDateRange } from "../../redux/dateRangeSlice";
 import NotificationPopup from "../NotificationsPopUp";
 import { Badge } from "@mui/material";
 import { resetDateRange } from "../../redux/dateRangeSlice";
+import { useLoader } from "../../context/loaderContext";
+import { getNotifications, setNotificationsRead } from "../../api/services/documentService";
 
 const NavBar = ({ isCollapsed, header }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const {withLoader} = useLoader();
 
   const [openPicker, setOpenPicker] = useState(false);
 
   const [openNotifications, setOpenNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
-const notifications = [
-  {
-    id: 1,
-    message: "Document approved successfully",
-    createdAt: "2026-06-22T10:30:00",
-    read: false,
-  },
-  {
-    id: 2,
-    message: "Reviewer assigned",
-    createdAt: "2026-06-20T12:00:00",
-    read: true,
-  },
-  {
-    id: 3,
-    message: "Document rejected",
-    createdAt: "2026-05-10T09:00:00",
-    read: false,
-  },
-  {
-    id: 1,
-    message: "Document approved successfully",
-    createdAt: "2026-06-22T10:30:00",
-    read: false,
-  },
-  {
-    id: 2,
-    message: "Reviewer assigned",
-    createdAt: "2026-06-20T12:00:00",
-    read: true,
-  },
-  {
-    id: 3,
-    message: "Document rejected",
-    createdAt: "2026-05-10T09:00:00",
-    read: false,
-  },
-  {
-    id: 1,
-    message: "Document approved successfully",
-    createdAt: "2026-06-22T10:30:00",
-    read: false,
-  },
-  {
-    id: 2,
-    message: "Reviewer assigned",
-    createdAt: "2026-06-20T12:00:00",
-    read: true,
-  },
-  {
-    id: 3,
-    message: "Document rejected",
-    createdAt: "2026-05-10T09:00:00",
-    read: false,
-  },
-];
+    const getNotification = useCallback(async (showLoader = true) => {
+      const response =  showLoader
+    ? await withLoader(() => getNotifications(false))
+    : await getNotifications(false);
+  
+      if (response.data.success) {
+        console.log("Notifications fetched successfully");
+        setNotifications(response.data.data);
+    }}, []);
+
+    const getAllNotifications = useCallback(async () => {
+      const response = await withLoader(async () => await setNotificationsRead( false));
+  
+      if (response.data.success) {
+        console.log("All Notifications marked read successfully");
+        getNotification();
+    }}, []);
+
+    //notification debounce
+    useEffect(() => {
+      const interval = setInterval(() => {
+        getNotification(false); 
+      }, 300000); //5 minute
+
+      return () => clearInterval(interval);
+    }, [getNotification]);
 
 const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleLogout = () => {
     console.log("handle log out");
     localStorage.removeItem("token");
+    localStorage.removeItem("name");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("role");
     dispatch(resetDateRange());
     navigate("/sign-in");
   };
@@ -143,6 +120,7 @@ const unreadCount = notifications.filter((n) => !n.read).length;
                     onClick={() => {
                         setOpenNotifications((prev) => !prev);
                         setOpenPicker(false); 
+                        getAllNotifications();
                     }}
                     />
                 </Badge>

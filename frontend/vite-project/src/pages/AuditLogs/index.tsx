@@ -10,76 +10,28 @@ import {
   Typography,
   Box,
 } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
 import { BiChevronLeftCircle } from "react-icons/bi";
-import { useNavigate } from "react-router-dom";
-
-const logs = [
-  {
-    action: "CREATE_DOCUMENT",
-    user: "Joey Bonn",
-    metadata: "Document created with title: Doc-2",
-    createdAt: "2026-06-09T12:58:48.118Z",
-  },
-  {
-    action: "EDIT_DOCUMENT",
-    user: "Joey Bonn",
-    metadata: "Updated content in section 1",
-    createdAt: "2026-06-09T01:30:00Z",
-  },
-  {
-    action: "ADD_COMMENT",
-    user: "Joey Bonn",
-    metadata: "Added comment: Please review this section",
-    createdAt: "2026-06-09T02:00:00Z",
-  },
-  {
-    action: "SUBMIT_DOCUMENT",
-    user: "Joey Bonn",
-    metadata: "Submitted for review",
-    createdAt: "2026-06-10T09:00:00Z",
-  },
-  {
-    action: "ASSIGN_DOCUMENT",
-    user: "Admin",
-    metadata: "Assigned to Manager",
-    createdAt: "2026-06-10T09:30:00Z",
-  },
-  {
-    action: "REASSIGN_DOCUMENT",
-    user: "Admin",
-    metadata: "Re-assigned to Senior Manager",
-    createdAt: "2026-06-10T10:00:00Z",
-  },
-  {
-    action: "DELEGATE_TO_ADMIN",
-    user: "Manager",
-    metadata: "Delegated back to Admin",
-    createdAt: "2026-06-10T11:00:00Z",
-  },
-  {
-    action: "APPROVE_DOCUMENT",
-    user: "Admin",
-    metadata: "Document approved",
-    createdAt: "2026-06-11T12:00:00Z",
-  },
-  {
-    action: "ARCHIVE_DOCUMENT",
-    user: "System",
-    metadata: "Document archived after approval",
-    createdAt: "2026-06-12T09:00:00Z",
-  },
-];
+import { useLocation, useNavigate } from "react-router-dom";
+import { useLoader } from "../../context/loaderContext";
+import { getAuditLogs } from "../../api/services/documentService";
 
 
 const AuditLogs = () => {
     const navigate = useNavigate();
+    const [logs, setLogs] = useState();
+    const {withLoader} = useLoader();
+    const location = useLocation();
+
+    const documentId = location.state?.documentId;
+
 const actionConfig = {
   CREATE_DOCUMENT: {
     label: "Created",
     color: "#3b82f6", // 🔵 blue
   },
 
-  EDIT_DOCUMENT: {
+  UPDATE_DOCUMENT: {
     label: "Edited",
     color: "#8b5cf6", // 🟣 violet 
   },
@@ -103,12 +55,6 @@ const actionConfig = {
     label: "Re-assigned",
     color: "#f59e0b", // 🟠 orange 
   },
-
-  DELEGATE_TO_ADMIN: {
-    label: "Delegated to Admin",
-    color: "#a16207", // 🟤 brown
-  },
-
   APPROVE_DOCUMENT: {
     label: "Approved",
     color: "#22c55e", // 🟢 green
@@ -123,7 +69,25 @@ const actionConfig = {
     label: "Archived",
     color: "#334155", // ⚫ slate 
   },
+  DELETE_DOCUMENT: {
+    label: "Deleted",
+    color: "purple",
+  },
 };
+
+  const getLogs = useCallback(async () => {
+    const response = await withLoader(async () => await getAuditLogs(documentId, false));
+
+    if (response.data.success) {
+      console.log("Audit logs fetched successfully");
+      setLogs(response.data.data);
+  }}, []);
+
+useEffect(() => {
+ getLogs();
+}, [getLogs]);
+
+
   return (
     <Box sx={{ p: 3 }}>
 
@@ -219,7 +183,7 @@ const actionConfig = {
 
         {/* BODY */}
         <TableBody>
-          {logs.map((log, index) => {
+          {(logs|| []).map((log, index) => {
             const config = actionConfig[log.action] || {
               label: log.action,
               color: "#6b7280",
@@ -241,7 +205,7 @@ const actionConfig = {
                 {/* USER */}
                 <TableCell>
                   <Typography sx={{ fontWeight: 500 }}>
-                    {log.user}
+                    {log.user.name}
                   </Typography>
                 </TableCell>
 

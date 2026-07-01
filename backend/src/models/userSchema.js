@@ -22,5 +22,11 @@ export const User = mongoose.model("User", new mongoose.Schema({
         type: String,
         require: true,
     },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
 
-}));
+}, {
+    timestamps: true 
+    }));

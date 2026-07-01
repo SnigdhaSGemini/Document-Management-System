@@ -9,6 +9,8 @@ import { TbLayoutDashboard } from "react-icons/tb";
 import { VscPreview } from "react-icons/vsc";
 
 const SideBar = ({ isCollapsed, setIsCollapsed }) => {
+    const role = localStorage.getItem("role");
+
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
@@ -53,6 +55,7 @@ const SideBar = ({ isCollapsed, setIsCollapsed }) => {
           {!isCollapsed && <span className="hidden md:block">Dashboard</span>}
         </NavLink>
 
+      {role === "user" && (<>
         {/* Create Document */}
         <NavLink
           to="/create-document"
@@ -96,7 +99,10 @@ const SideBar = ({ isCollapsed, setIsCollapsed }) => {
           <VscPreview className="text-lg" />
           {!isCollapsed && <span className="hidden md:block">Review Outcomes</span>}
         </NavLink>
+      </>
+      )}
 
+      {role === "reviewer" && (<>
         {/* Assigned */}
         <NavLink
           to="/assigned-drafts"
@@ -118,18 +124,9 @@ const SideBar = ({ isCollapsed, setIsCollapsed }) => {
           <VscPreview className="text-lg" />
           {!isCollapsed && <span className="hidden md:block">Reviewed Documents</span>}
         </NavLink>
+      </>)}
 
-        {/* Delegate */}
-        <NavLink
-          to="/delegated-to-admin"
-          className={({ isActive }) =>
-            `${itemClass} ${isActive ? activeClass : ""}`
-          }
-        >
-          <RiUserSharedLine className="text-lg" />
-          {!isCollapsed && <span className="hidden md:block">Delegated to Admin</span>}
-        </NavLink>
-
+        {role === "admin" && (<>
         {/* Users */}
         <NavLink
           to="/user-management"
@@ -151,6 +148,7 @@ const SideBar = ({ isCollapsed, setIsCollapsed }) => {
           <CgFileDocument className="text-lg" />
           {!isCollapsed && <span className="hidden md:block">All Documents</span>}
         </NavLink>
+        </>)}
 
       </div>
     </div>

@@ -21,3 +21,85 @@ export const createUser = async (req , res) => {
         res.status(500).json({success: false, message: err.message || "Something went wrong."});
     }
 };
+
+export const getAllReviewer = async (req , res) => {
+    try{
+        
+         const userService = new UserService();
+         const response = await userService.getAllReviewers();
+
+         const {success, ...data} = response;
+
+        if(success){
+         console.log(`Reviewers fetched Successfully!`);
+         res.status(201).json({success: true, message: `Reviewers fetched successfully!`, ...data});
+        }
+        else{
+             res.status(400).json(response);
+        }
+    }
+    catch(err) {
+        res.status(500).json({success: false, message: err.message || "Something went wrong."});
+    }
+};
+
+
+export const getAllUsers = async (req , res) => {
+    try{
+         const userService = new UserService();
+         const response = await userService.getsAllUsers(req.query);
+
+         const {success, ...data} = response;
+
+        if(success){
+         console.log(`All users fetched successfully.`);
+         res.status(201).json({success: true, message: `All users fetched successfully!`, ...data});
+        }
+        else{
+             res.status(400).json(response);
+        }
+    }
+    catch(err) {
+        res.status(500).json({success: false, message: err.message || "Something went wrong."});
+    }
+};
+
+export const updateUser = async (req , res) => {
+    try{
+         const userService = new UserService();
+         const response = await userService.updatesUser(req.params.id, req.body);
+
+         const {success, ...data} = response;
+
+        if(success){
+         console.log(`User updated successfully.`);
+         res.status(201).json({success: true, message: `User updated successfully!`, ...data});
+        }
+        else{
+             res.status(400).json(response);
+        }
+    }
+    catch(err) {
+        res.status(500).json({success: false, message: err.message || "Something went wrong."});
+    }
+};
+
+export const deleteUser = async (req , res) => {
+    try{
+         const userService = new UserService();
+         const response = await userService.deletesUser(req.params.id);
+
+         const {success, ...data} = response;
+
+        if(success){
+         console.log(`User deleted successfully.`);
+         res.status(201).json({success: true, message: `User deleted successfully!`, ...data});
+        }
+        else{
+             res.status(400).json(response);
+        }
+    }
+    catch(err) {
+        res.status(500).json({success: false, message: err.message || "Something went wrong."});
+    }
+};

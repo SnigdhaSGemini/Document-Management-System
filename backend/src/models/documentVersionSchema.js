@@ -1,4 +1,4 @@
-import mongoose, { isObjectIdOrHexString } from "mongoose";
+import mongoose from "mongoose";
 
 export const DocumentVersion = mongoose.model("DocumentVersion", new mongoose.Schema({
    documentId: {

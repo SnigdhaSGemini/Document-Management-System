@@ -11,6 +11,9 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useState, useEffect } from "react";
+import { useLoader } from "../../context/loaderContext";
+import { addComment } from "../../api/services/documentService";
+import { useNavigate } from "react-router-dom";
 
 const WarningPopUp = ({
   open,
@@ -18,14 +21,32 @@ const WarningPopUp = ({
   onConfirm,
   title = "Delete Document",
   message = "Are you sure you want to delete this document?",
-  action = "changeReviewer", // delete | approve | reject | changeReviewer
+  action = "changeReviewer", // delete | approve | reject | changeReviewer | archive
   selectedTitle = "",
   reviewersList = [],
   selectedReviewer = "",
-  setSelectedReviewer = () => {}
+  setSelectedReviewer = () => {},
+  apiAction,
+  rowData
 }) => {
   const [remarks, setRemarks] = useState("");
   const [error, setError] = useState("");
+  const {startLoading, stopLoading} = useLoader();
+  const navigate = useNavigate();
+
+   const addReviewRemarks = async(id, comment) => {
+      startLoading();
+      const userId = localStorage.getItem("userId");
+      const user = localStorage.getItem("name");
+      if (!comment.trim()) return;
+    
+      const data = { id, body: comment, userId, user};
+    
+      await addComment(data,false);
+     console.log("comments:: ",comment, data);
+  
+     stopLoading();
+    };
 
   useEffect(() => {
     if (!open) {
@@ -35,7 +56,7 @@ const WarningPopUp = ({
   }, [open]);
 
   // Handle confirm click
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
   if ((action === "approve" || action === "reject") && !remarks.trim()) {
     setError("Remarks are required");
     return;
@@ -54,8 +75,27 @@ const WarningPopUp = ({
       : action === "changeReviewer"
       ? selectedReviewer
       : null;
+    
+  
 
   onConfirm(payload);
+
+  if(action === "delete") apiAction(rowData._id);
+  if(action === "archive"){
+    apiAction("archived", rowData._id);
+    navigate("/all-documents");
+  }
+
+  else if(action === "changeReviewer") { 
+  const selected = reviewersList.find((r) => r.name === payload);
+  apiAction({id: rowData._id, reviewer: selected.name, reviewerId: selected.userId});
+  }
+  else if(action === "approve") apiAction("approved", rowData._id);
+  else if(action === "reject") apiAction("rejected", rowData._id);
+  if(action === "approve" || action === "reject"){ 
+    await addReviewRemarks(rowData._id, payload);
+    navigate("/reviewed-documents");
+  }
 };
 
   const isApprovalFlow = action === "approve" || action === "reject";
@@ -182,7 +222,7 @@ const WarningPopUp = ({
             }}
           >
             {reviewersList.map((r) => (
-              <MenuItem key={r.id} value={r.id}>
+              <MenuItem key={r._id} value={r.name}>
                 {r.name}
               </MenuItem>
             ))}

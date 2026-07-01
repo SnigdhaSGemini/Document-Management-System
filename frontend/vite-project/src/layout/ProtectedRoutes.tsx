@@ -20,16 +20,46 @@ const ProtectedRoutes = () => {
     "/review-outcomes": "Review Outcomes",
     "/assigned-drafts": "Assigned Drafts",
     "/reviewed-documents": "Reviewed Documents",
-    "/delegated-to-admin": "Delegated to Admin",
     "/all-documents": "All Documents",
   };
+
+  const roleAccess = {
+  user: [
+    "/create-document",
+    "/my-drafts",
+    "/pending-reviews",
+    "/review-outcomes",
+  ],
+
+  reviewer: [
+    "/assigned-drafts",
+    "/reviewed-documents",
+  ],
+
+  admin: [
+    "/user-management",
+    "/all-documents",
+  ],
+};
 
   const header = routeTitles[location.pathname] || "Dashboard";
 
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
 
     
     if (!token) {
+        return <Navigate to="/unauthorized" replace />;
+      }
+
+      const commonRoutes = ["/dashboard",  "/draft-details", "/history", "/audit-logs"];
+
+      const allowedRoutes = [
+        ...commonRoutes,
+        ...(roleAccess[role] || []),
+      ];
+
+      if (!allowedRoutes.includes(location.pathname)) {
         return <Navigate to="/unauthorized" replace />;
       }
 

@@ -18,18 +18,14 @@ import {
   Modal,
   Typography,
   IconButton,
+  Switch, FormControlLabel
 } from "@mui/material";
 import { Edit } from "@mui/icons-material";
 import { useFormik } from "formik";
 import { TablePagination } from "@mui/material";
-import { useState } from "react";
-
-const usersData = [
-  { name: "Lucy F.", email: "lucy@gmail.com", role: "Admin", status: "Active" },
-  { name: "Maria Losy", email: "maria@gmail.com", role: "Admin", status: "Active" },
-  { name: "Paco Pinto", email: "paco@gmail.com", role: "Reviewer", status: "Active" },
-  { name: "Jennifer Laws", email: "jennifer@gmail.com", role: "Creator", status: "Inactive" },
-];
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLoader } from "../../context/loaderContext";
+import { createUsers, deleteUser, getAllUsers, updateUser } from "../../api/services/userService";
 
 const UserManagement = () => {
   const [search, setSearch] = useState("");
@@ -43,6 +39,12 @@ const UserManagement = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const [users, setUsers] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const { withLoader, startLoading, stopLoading } = useLoader();
+
+
   const commonFieldSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: "10px",
@@ -53,33 +55,82 @@ const UserManagement = () => {
     },
   };
 
-  // Filter
-  const filteredUsers = usersData.filter((u) => {
-    return (
-      u.name.toLowerCase().includes(search.toLowerCase()) &&
-      (roleFilter ? u.role === roleFilter : true) &&
-      (statusFilter ? u.status === statusFilter : true)
-    );
-  });
-
   const formik = useFormik({
-    initialValues: { name: "", email: "", role: "" },
-    onSubmit: (values) => {
-      if (isEditMode) {
-        console.log("Updating user:", values);
-      } else {
-        console.log("Adding user:", values);
-      }
+    initialValues: { name: "", email: "", role: "", isActive: true },
+   onSubmit: async (values) => {
+      try {
+        if (isEditMode) {
+          const response = await withLoader(() =>
+            updateUser(
+              {
+                id: selectedUser._id,
+                apiData: {
+                  name: values.name,
+                  email: values.email,
+                  role: values.role,
+                  isActive: values.isActive,
+                },
+              },
+              true
+            )
+          );
 
-      formik.resetForm();
-      setOpen(false);
+          if (response.success) {
+            await fetchUsers();
+
+            formik.resetForm({
+              values: {
+                name: "",
+                email: "",
+                role: "",
+                isActive: true,
+              },
+            });
+            setOpen(false);
+            setSelectedUser(null);
+            setIsEditMode(false);
+          }
+
+          return;
+        } else {
+          const response = await withLoader(() =>
+            createUsers(
+              {
+                name: values.name,
+                email: values.email,
+                role: values.role.toLowerCase(),
+              },
+              true
+            )
+          );
+
+          if (response.success) {
+            await fetchUsers();
+
+            formik.resetForm();
+            setOpen(false);
+          }
+        }
+      } catch (error) {
+        console.error(error);
       }
+    }
+
     });
 
-    // const startIndex = page * rowsPerPage;
-    // const endIndex = startIndex + rowsPerPage;
+    const deletesUser = async () => {
+      startLoading();
+      const res = await deleteUser(selectedUser._id, true);
 
-    // const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+      if(res.success){
+        await fetchUsers();
+        formik.resetForm();
+        setOpen(false);
+        setSelectedUser(null);
+        setIsEditMode(false);
+      }
+      stopLoading();
+    };
 
   // Reset modal form when closed
   const handleCloseModal = () => {
@@ -88,6 +139,48 @@ const UserManagement = () => {
     setSelectedUser(null);
     setOpen(false);
   };
+
+  const payload = useMemo(() => {
+    const p = {
+      page: page + 1,
+      limit: rowsPerPage
+    };
+
+    if (search) p.search = search;
+
+    if (roleFilter) {
+      p.role = roleFilter;
+    }
+
+    if (statusFilter) {
+      p.isActive = statusFilter === "true";
+    }
+
+    return p;
+  }, [
+    page,
+    rowsPerPage,
+    search,
+    roleFilter,
+    statusFilter,
+  ]);
+
+
+  const fetchUsers = useCallback(async () => {
+    const response = await withLoader(() => getAllUsers(payload, false));
+
+    if (response.success) {
+      setUsers(response.data.data);
+      setTotalCount(response.data.count);
+    } else {
+      setUsers([]);
+      setTotalCount(0);
+    }
+  }, [payload, withLoader]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   return (
     <Paper
@@ -132,9 +225,9 @@ const UserManagement = () => {
             sx={{ minWidth: 150, ...commonFieldSx }}
           >
             <MenuItem value="">All</MenuItem>
-            <MenuItem value="Admin">Admin</MenuItem>
-            <MenuItem value="Reviewer">Reviewer</MenuItem>
-            <MenuItem value="Creator">Creator</MenuItem>
+            <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="reviewer">Reviewer</MenuItem>
+            <MenuItem value="user">User</MenuItem>
           </TextField>
 
           {/* Status Filter */}
@@ -146,8 +239,8 @@ const UserManagement = () => {
             sx={{ minWidth: 150, ...commonFieldSx }}
           >
             <MenuItem value="">All</MenuItem>
-            <MenuItem value="Active">Active</MenuItem>
-            <MenuItem value="Inactive">Inactive</MenuItem>
+            <MenuItem value="true">Active</MenuItem>
+            <MenuItem value="false">Inactive</MenuItem>
           </TextField>
 
           {/* Reset Button */}
@@ -156,6 +249,7 @@ const UserManagement = () => {
               setSearch("");
               setRoleFilter("");
               setStatusFilter("");
+              setPage(0);
             }}
             sx={{
               borderRadius: "10px",
@@ -178,7 +272,7 @@ const UserManagement = () => {
       {/* Add User Button  */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
         <Button
-          onClick={() => setOpen(true)}
+          onClick={() => {setOpen(true); setIsEditMode(false);formik.resetForm()}}
           sx={{
             borderRadius: "10px",
             textTransform: "none",
@@ -225,7 +319,7 @@ const UserManagement = () => {
 
           {/* Body */}
           <TableBody>
-            {filteredUsers.map((user, index) => (
+            {users.map((user, index) => (
               <TableRow
                 key={index}
                 sx={{
@@ -249,21 +343,21 @@ const UserManagement = () => {
 
                 {/* Role */}
                 <TableCell sx={{ fontSize: 13, color: "#6b7280" }}>
-                  {user.role}
+                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </TableCell>
 
                 {/* Status */}
                 <TableCell>
                   <Chip
-                    label={user.status}
+                    label={user.isActive ? "Active" : "In-active"}
                     size="small"
                     sx={{
                       backgroundColor:
-                        user.status === "Active"
+                        user.isActive
                           ? "rgba(22,163,74,0.1)"
                           : "rgba(107,114,128,0.1)",
                       color:
-                        user.status === "Active"
+                        user.isActive
                           ? "#16a34a"
                           : "#6b7280",
                       fontWeight: 500,
@@ -293,6 +387,7 @@ const UserManagement = () => {
                           name: user.name,
                           email: user.email,
                           role: user.role,
+                          isActive: user.isActive,
                         });
 
                         setOpen(true);
@@ -329,7 +424,7 @@ const UserManagement = () => {
             ))}
 
             {/* Empty State */}
-            {filteredUsers.length === 0 && (
+            {totalCount === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
                   No users found
@@ -341,7 +436,7 @@ const UserManagement = () => {
       </TableContainer>
       <TablePagination
         component="div"
-        count={filteredUsers.length}
+        count={totalCount}
         page={page}
         onPageChange={(e, newPage) => setPage(newPage)}
         rowsPerPage={rowsPerPage}
@@ -405,11 +500,31 @@ const UserManagement = () => {
                 onChange={formik.handleChange}
                 label="Role"
               >
-                <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="Reviewer">Reviewer</MenuItem>
-                <MenuItem value="Creator">Creator</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="reviewer">Reviewer</MenuItem>
+                <MenuItem value="user">User</MenuItem>
               </Select>
             </FormControl>
+
+            {isEditMode && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formik.values.isActive}
+                  onChange={(e) =>
+                    formik.setFieldValue(
+                      "isActive",
+                      e.target.checked
+                    )
+                  }
+                />
+              }
+              label={
+                formik.values.isActive
+                  ? "Active"
+                  : "Inactive"
+              }
+            />)}
 
             <Button
               type="submit"
@@ -419,13 +534,10 @@ const UserManagement = () => {
                 backgroundColor: "#2563eb",
                 textTransform: "none",
                 borderRadius: "8px",
-                "&:hover": { backgroundColor: "#1d4ed8" },  
+                "&:hover": {
+                  backgroundColor: "#1d4ed8",
+                },
               }}
-            onClick={() => {
-              setIsEditMode(false);
-              formik.resetForm();
-              setOpen(true);
-            }}
             >
               {isEditMode ? "Update" : "Add User"}
             </Button>
@@ -444,11 +556,7 @@ const UserManagement = () => {
                   backgroundColor: "rgba(239,68,68,0.08)",
                 },
               }}
-              onClick={() => {
-                console.log("Deleting user:", selectedUser);
-                formik.resetForm();
-                setOpen(false);
-              }}
+              onClick={deletesUser}
             >
               Delete User
             </Button>

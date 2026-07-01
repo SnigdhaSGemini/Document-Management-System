@@ -26,6 +26,10 @@ export const Document = mongoose.model("Document", new mongoose.Schema({
         type: String,
         required: true
     },
+    draftNo: {
+        type: String,
+        required: true
+    },
     reviewerId: {
         type: String,
         default: null

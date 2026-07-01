@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../api/services/authService";
 import { useLoader } from "../../context/loaderContext";
+import { encryptPassword } from "../../utils/encryptPassword";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,12 +20,17 @@ const Login = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    const response = await withLoader(() => loginUser(data));
+    const {password, ...apiData} = data;
+    const publicKey = import.meta.env.VITE_PUBLIC_KEY.replace(/\\n/g, "\n");
+    const encryptedPassword = encryptPassword(password, publicKey)
+    const response = await withLoader(() => loginUser({...apiData, password: encryptedPassword }));
 
       if (response.success) {
         // token
         localStorage.setItem("token", response.data.token);
-
+        localStorage.setItem("name",response.data.data.name);
+        localStorage.setItem("userId", response.data.data.userId);
+        localStorage.setItem("role", response.data.data.role);
         reset(); 
         setShowPassword(false);
         navigate("/dashboard");
@@ -103,7 +109,7 @@ const Login = () => {
 
         {/* Forgot Password*/}
         <div className="text-right text-sm text-gray-600 hover:text-gray-800 cursor-pointer mt-1"
-              onClick={() => navigate("/reset-password")}>
+              onClick={() => navigate("/verify-otp")}>
           Forgot Password?
         </div>
 

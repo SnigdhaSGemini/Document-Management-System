@@ -96,6 +96,7 @@ export const documentIdValidation = (req, res, next) => {
 export const commentValidation = (req, res, next) => {
   const schema = Joi.object({
     userId: Joi.string().required(),
+    user: Joi.string().required(),
     body: Joi.string().min(1).required()
   });
 
@@ -111,5 +112,29 @@ export const commentValidation = (req, res, next) => {
   }
 
   req.body = value;
+  next();
+};
+
+export const changeReviewerValidation = (req, res, next) => {
+  const schema = Joi.object({
+    id: Joi.string().required(),
+    reviewer: Joi.string().min(1).required(),
+    reviewerId: Joi.string().required() 
+  });
+
+  const { error, value } = schema.validate(
+    { ...req.body },
+    {
+      stripUnknown: true
+    }
+  );
+
+  if (error) {
+    return res.status(400).json({
+      message: "Bad Request",
+      error: error.details[0].message
+    });
+  }
+
   next();
 };

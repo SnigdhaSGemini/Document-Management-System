@@ -14,12 +14,12 @@ import PendingReviews from './pages/PendingReviews';
 import ReviewOutcomes from './pages/ReviewOutcomes';
 import AssignedDrafts from './pages/AssignedDrafts';
 import ReviewedDocuments from './pages/ReviewedDocuments';
-import DelegatedToAdmin from './pages/DelegatedToAdmin';
 import AllDocuments from './pages/AllDocuments';
 import VersionHistory from './pages/History/VersionHistory';
 import AuditLogs from './pages/AuditLogs';
 import DetailsPage from './pages/DetailsPage';
 import Unauthorized from './components/Unauthorized';
+import VerifyOtp from './pages/Login/VerifyOtp';
 
 
 function App() {
@@ -33,6 +33,7 @@ function App() {
           <Route path="/sign-in" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
       </Route>
       
       {/* Private Routes */}
@@ -45,7 +46,6 @@ function App() {
         <Route path="/review-outcomes" element={<ReviewOutcomes />} />
         <Route path="/assigned-drafts" element={<AssignedDrafts />} />
         <Route path="/reviewed-documents" element={<ReviewedDocuments />} />
-        <Route path="/delegated-to-admin" element={<DelegatedToAdmin />} />
         <Route path="/all-documents" element={<AllDocuments />} />
         <Route path="/draft-details" element={<DetailsPage />} />
         <Route path="/history" element={<VersionHistory />} />
