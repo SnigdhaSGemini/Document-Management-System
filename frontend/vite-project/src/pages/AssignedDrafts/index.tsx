@@ -1,18 +1,10 @@
-import {
-  Box,
-  TextField,
-  MenuItem,
-  Paper,
-  Typography,
-  Button
-} from "@mui/material";
+import { Box, TextField, MenuItem, Paper, Typography, Button} from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomTable from "../../components/CustomTable";
 import { useLoader } from "../../context/loaderContext";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../redux";
 import { getAllDocuments, getAllOwners } from "../../api/services/documentService";
-import { getAllReviewers } from "../../api/services/userService";
 
 const AssignedDrafts = () => {
   const [search, setSearch] = useState("");

@@ -160,7 +160,6 @@ const {
         reviewerId: currentUser._doc.userId,
       };
     }
-    console.log("role filter data:: ", roleFilter);
 
     if (type === "dashboard") {
 
@@ -598,13 +597,8 @@ const {
                             as: "user"
                           }
                         },
-                        {
-                          $unwind: "$user"
-                        },
-                        {
-                          $sort: { createdAt: -1 }
-                        }
-                      ]);
+                        {$unwind: "$user"},
+                        { $sort: { createdAt: -1 }}]);
 
     if (!auditLogs) {
       return { success: false, message: "No audit logs found for this document." };

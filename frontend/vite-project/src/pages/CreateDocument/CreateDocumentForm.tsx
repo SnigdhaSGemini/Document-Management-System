@@ -36,7 +36,6 @@ const CreateDocumentForm = () => {
         stopLoading();
 
         if(response.success){
-          console.log(" Submit for Review:", documentData);
           formik.resetForm();
           navigate("/pending-reviews");
         }
@@ -56,7 +55,6 @@ const CreateDocumentForm = () => {
   const handleDraft = async () => {
     const documentData = buildDocumentData("draft");
 
-    console.log(" Save as Draft:", documentData);
       startLoading();
       const response = await createDocument(documentData, false);
       stopLoading();

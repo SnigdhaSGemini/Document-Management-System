@@ -94,7 +94,6 @@ const unreadCount = notifications.filter((n) => !n.read).length;
               >
                 <DateRangeFilter
                     onChange={(range) => {
-                        console.log("Selected range:", range);
                         dispatch(setDateRange(range));
                     }}
                     onClose={() => setOpenPicker(false)}  

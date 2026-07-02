@@ -1,15 +1,4 @@
-import {
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Paper,
-  TableContainer,
-  Chip,
-  Typography,
-  Box,
-} from "@mui/material";
+import { Table, TableHead, TableRow, TableCell, TableBody, Paper, TableContainer, Chip, Typography, Box,} from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { BiChevronLeftCircle } from "react-icons/bi";
 import { useLocation, useNavigate } from "react-router-dom";

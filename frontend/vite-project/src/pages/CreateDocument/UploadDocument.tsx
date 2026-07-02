@@ -47,7 +47,6 @@ const processFile = (selectedFile) => {
     reader.onload = () => {
       if (typeof reader.result === "string") {
         setContent(reader.result);
-        console.log("Text Content:", reader.result);
       }
     };
 
@@ -75,7 +74,6 @@ const processFile = (selectedFile) => {
       }
 
       setContent(extractedText);
-      console.log("PDF Content:", extractedText);
     };
 
     reader.readAsArrayBuffer(selectedFile);
@@ -93,7 +91,6 @@ const processFile = (selectedFile) => {
       });
 
       setContent(result.value.trim());
-      console.log("DOCX Content:", result.value);
     };
 
     reader.readAsArrayBuffer(selectedFile);
@@ -101,7 +98,6 @@ const processFile = (selectedFile) => {
 
   // Unsupported
   else {
-    console.log("Unsupported file type");
     setContent("Preview not available for this file type.");
   }
 };
@@ -142,7 +138,6 @@ const processFile = (selectedFile) => {
       status: "draft",
     };
 
-    console.log("Saved Draft:", documentData);
     startLoading();
     const response = await createDocument(documentData, false);
     stopLoading();

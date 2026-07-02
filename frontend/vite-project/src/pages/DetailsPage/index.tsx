@@ -1,15 +1,4 @@
-import {
-  Typography,
-  Box,
-  Button,
-  TextField,
-  Avatar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  MenuItem,
-  DialogActions
-} from "@mui/material";
+import { Typography, Box, Button, TextField, Avatar, Dialog, DialogTitle, DialogContent, MenuItem, DialogActions} from "@mui/material";
 import { History, ReceiptLong } from "@mui/icons-material";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -141,7 +130,6 @@ const handleAddComment = async() => {
   const data = { id: draft._id, body: comment, userId, user};
 
  const res =  await addComment(data,false);
- console.log("comments:: ",comments, data);
 
  if(res.data.success){
   getComments();
@@ -154,7 +142,6 @@ const getComments = useCallback(async() => {
 
   startLoading();
   const res =  await getAllComments(draft._id, false);
-  console.log("all comment data:: ",res);
 
   if(res.data.success){
     console.log("All comments fetched successfully");
@@ -166,7 +153,6 @@ const getComments = useCallback(async() => {
 
 const updateDocumentStatus = async (newStatus) => {
   try {
-    console.log("Updating status to:", newStatus);
 
     setDocumentStatus(newStatus);
   } catch (err) {
@@ -210,8 +196,6 @@ const handleSaveReviewer = async () => {
     );
 
     setCurrentReviewer(selected);
-
-    console.log("Reviewer changed to:", selected);
 
     setReviewerModalOpen(false);
   } catch (e) {
@@ -717,11 +701,7 @@ const handleSaveReviewer = async () => {
         if(actionType === "changeReviewer"){
           const selected = reviewersList.find((r) => r.name === value);
           setCurrentReviewer(selected);
-          console.log("Reviewer changed to:", selected);
           }
-        if(actionType === "approve" || actionType === "reject"){
-          console.log("review remarks : ", value);
-        }
 
         setDialogOpen(false);
       }}

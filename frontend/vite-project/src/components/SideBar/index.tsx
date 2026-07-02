@@ -4,7 +4,7 @@ import { HiOutlineClipboardDocumentCheck } from "react-icons/hi2";
 import { IoMdCreate } from "react-icons/io";
 import { LuUserRoundCog } from "react-icons/lu";
 import { MdPendingActions, MdMenu } from "react-icons/md";
-import { RiDraftLine, RiUserSharedLine } from "react-icons/ri";
+import { RiDraftLine } from "react-icons/ri";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { VscPreview } from "react-icons/vsc";
 

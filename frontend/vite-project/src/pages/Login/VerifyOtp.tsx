@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useLoader } from "../../context/loaderContext";
 import { sendOtp, verifyOtp } from "../../api/services/authService";
 
-const OTP_EXPIRY = 300; //5 min
+const OTP_EXPIRY = 600; //10 min
 
 const VerifyOtp = () => {
   const navigate = useNavigate();
@@ -18,7 +18,6 @@ const VerifyOtp = () => {
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors },
   } = useForm();
 

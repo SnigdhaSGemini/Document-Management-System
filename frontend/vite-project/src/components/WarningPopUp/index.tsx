@@ -43,7 +43,6 @@ const WarningPopUp = ({
       const data = { id, body: comment, userId, user};
     
       await addComment(data,false);
-     console.log("comments:: ",comment, data);
   
      stopLoading();
     };

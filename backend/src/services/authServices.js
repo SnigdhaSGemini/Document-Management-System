@@ -105,22 +105,10 @@ class AuthService {
         };
       }
 
-      const otp = Math.floor(
-        100000 + Math.random() * 900000
-      ).toString();
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      await Otp.findOneAndUpdate(
-        { email },
-        {
-          otp,
-          verified: false,
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
-        },
-        {
-          upsert: true,
-          new: true,
-        }
-      );
+      await Otp.findOneAndUpdate({ email }, {otp, verified: false, expiresAt: new Date(Date.now() + 10 * 60 * 1000)},
+        { upsert: true, new: true});
 
       await transporter.sendMail({
         from: process.env.EMAIL,
@@ -157,7 +145,7 @@ class AuthService {
       if (!otpRecord) {
         return {
           success: false,
-          message: "OTP not found.",
+          message: "OTP not found. Please try resending otp.",
         };
       }
 

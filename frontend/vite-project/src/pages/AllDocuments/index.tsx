@@ -1,11 +1,4 @@
-import {
-  Box,
-  TextField,
-  MenuItem,
-  Paper,
-  Typography,
-  Button
-} from "@mui/material";
+import { Box, TextField, MenuItem, Paper, Typography, Button} from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomTable from "../../components/CustomTable";
 import { useLoader } from "../../context/loaderContext";
@@ -136,12 +129,6 @@ useEffect(() => {
     >
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        {/* <Typography
-          variant="h6"
-          sx={{ fontWeight: 600, mb: 1, color: "#4B5563" }}
-        >
-          My Drafts
-        </Typography> */}
 
         <Typography
           variant="body2"

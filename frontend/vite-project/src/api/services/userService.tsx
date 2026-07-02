@@ -11,7 +11,6 @@ export const createUsers = (data, showSuccessToast = false) =>
 export const getAllUsers = (data, showSuccessToast = false) =>
   handleApi(() => axiosInstance.get("/user/get-all-users", {params: data}), {showSuccessToast});
 
-
 export const updateUser = (data, showSuccessToast = false) => {
   const {id, apiData} = data;
  return handleApi(() => axiosInstance.post(`/user/update/${id}`, apiData), {showSuccessToast})};

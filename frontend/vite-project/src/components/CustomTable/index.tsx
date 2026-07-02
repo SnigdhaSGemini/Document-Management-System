@@ -31,7 +31,7 @@ import { RxCrossCircled } from "react-icons/rx";
 import { LuUserRoundPen } from "react-icons/lu";
 import { IoArchiveOutline } from "react-icons/io5";
 import dayjs from "dayjs";
-import { addComment, changeReviewers, deleteDocument, submitDocument, updateDocument } from "../../api/services/documentService";
+import { changeReviewers, deleteDocument, submitDocument, updateDocument } from "../../api/services/documentService";
 import { useLoader } from "../../context/loaderContext";
 import { getAllReviewers } from "../../api/services/userService";
 
@@ -63,7 +63,7 @@ const CustomTable = ({
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [userRole] = useState(role); 
-  const [actionType, setActionType] = useState(""); // "delete" | "approve" | "reject" | changeReviewer
+  const [actionType, setActionType] = useState(""); // "delete" | "approve" | "reject" | changeReviewer | archived
   const [reviewersList, setReviewersList] = useState([]);
 
 const [selectedReviewer, setSelectedReviewer] = useState("");
@@ -90,7 +90,6 @@ const [selectedReviewer, setSelectedReviewer] = useState("");
   };
 
   const handleUpdate = async () => {
-    console.log("Updated Data:", editData);
     startLoading();
     const res =  await updateDocument(editData, false);
     if(res.success) {
@@ -731,10 +730,9 @@ const getStatusChip = (status) => {
         open={openDialog}
         onClose={() => setOpenDialog(false)}
         onConfirm={(comment) => {
-            console.log("comment is set as :: ", comment);
             setOpenDialog(false);
         }}
-        action={actionType}                 // "delete" | "approve" | "reject" | "changeReviewer"
+        action={actionType}                 // "delete" | "approve" | "reject" | "changeReviewer" | "archived"
         selectedTitle={selectedRow?.title}
         reviewersList={reviewersList}
         selectedReviewer={selectedReviewer}
